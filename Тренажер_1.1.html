@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Практический тренажер 1.1: Анализ готовых анкет</title>
+    <style>
+        :root {
+            --primary: #2563eb;
+            --bg: #f8fafc;
+            --surface: #ffffff;
+            --text: #1e293b;
+            --text-muted: #64748b;
+            --border: #cbd5e1;
+            --highlight: #eff6ff;
+            --accent: #f59e0b;
+        }
+        * { box-sizing: border-box; }
+        body {
+            font-family: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            margin: 0;
+            padding: 20px;
+            line-height: 1.5;
+        }
+        .container {
+            max-width: 960px;
+            margin: 0 auto;
+            background: var(--surface);
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+        }
+        header { text-align: center; margin-bottom: 25px; border-bottom: 2px solid var(--primary); padding-bottom: 15px; }
+        h1 { margin: 0; font-size: 24px; color: var(--primary); }
+        .subtitle { font-size: 15px; color: var(--text-muted); margin: 5px 0 10px; }
+        .info-box { background: var(--highlight); padding: 12px; border-radius: 6px; margin: 8px 0; font-size: 14px; }
+        
+        .criteria-section { margin-bottom: 30px; }
+        h2 { font-size: 18px; margin-bottom: 12px; color: var(--text); border-left: 4px solid var(--primary); padding-left: 10px; }
+        
+        table { width: 100%; border-collapse: collapse; margin-bottom: 12px; background: var(--surface); }
+        th, td { padding: 12px 14px; text-align: left; border: 1px solid var(--border); vertical-align: middle; }
+        th { background: #f1f5f9; font-weight: 600; font-size: 14px; }
+        td:nth-child(1) { width: 40px; text-align: center; font-weight: bold; color: var(--text-muted); }
+        
+        /* Защита текста от редактирования и выделения */
+        .protected-text { user-select: none; cursor: default; -webkit-user-select: none; }
+        
+        .checkbox-cell { text-align: center; width: 140px; background: #fafafa; }
+        .custom-checkbox {
+            display: inline-flex; align-items: center; justify-content: center;
+            width: 24px; height: 24px; border: 2px solid var(--border); border-radius: 4px;
+            cursor: pointer; transition: all 0.2s ease; background: #fff; position: relative;
+        }
+        .custom-checkbox:hover { border-color: var(--primary); }
+        .custom-checkbox.active { background: var(--primary); border-color: var(--primary); }
+        .custom-checkbox::after {
+            content: "✓"; color: white; font-weight: bold; font-size: 14px;
+            opacity: 0; transform: scale(0.5); transition: all 0.2s ease;
+        }
+        .custom-checkbox.active::after { opacity: 1; transform: scale(1); }
+        
+        .reflection {
+            background: #fef3c7; border-left: 4px solid var(--accent);
+            padding: 12px; border-radius: 0 6px 6px 0; font-style: italic;
+            margin-top: 8px; font-size: 14px; user-select: none;
+        }
+        
+        .toolbar {
+            position: sticky; bottom: 0; background: var(--surface);
+            padding: 12px 0; border-top: 1px solid var(--border);
+            display: flex; justify-content: space-between; align-items: center; margin-top: 20px;
+        }
+        .progress { font-weight: 600; color: var(--primary); }
+        button {
+            background: var(--primary); color: white; border: none; padding: 8px 16px;
+            border-radius: 6px; cursor: pointer; font-size: 14px; transition: opacity 0.2s;
+        }
+        button:hover { opacity: 0.85; }
+        button.reset { background: #ef4444; margin-left: 8px; }
+        
+        @media print {
+            .toolbar { display: none; }
+            body { background: white; padding: 0; }
+            .container { box-shadow: none; padding: 0; }
+            .custom-checkbox { border-color: #999; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>ПРАКТИЧЕСКИЙ ТРЕНАЖЕР 1.1: Анализ готовых анкет</h1>
+            <p class="subtitle">Для начинающих: чек-лист наблюдения (без технических терминов)</p>
+            <div class="info-box protected-text" contenteditable="false">
+                <strong>Цель:</strong> развить «насмотренность» — умение видеть, что удобно, а что запутывает.<br>
+                <strong>Примечание:</strong> Отметьте ✔ каждый пункт после проверки.
+            </div>
+        </header>
+
+        <main id="checklist-container"></main>
+
+        <div class="toolbar">
+            <span class="progress" id="progress-text">Заполнено: 0 / 0</span>
+            <div>
+                <button onclick="window.print()">🖨️ Печать / PDF</button>
+                <button class="reset" onclick="resetProgress()">🗑️ Сбросить прогресс</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Структура данных тренажера на основе предоставленного файла
+        const trainerData = [
+            {
+                title: "I. Критерий 1: понятно ли, с чего начать? Стартовая страница.",
+                items: [
+                    "На первой форме есть приветствие или инструкция для оператора",
+                    "Видно, куда вводить данные (есть поля, подписи, подсказки)",
+                    "Кнопки «Далее»/ «Назад» расположены логично (внизу, в зоне видимости)"
+                ],
+                question: "Если бы вы были оператором, вы бы сразу поняли, что делать на этой странице?"
+            },
+            {
+                title: "II. Критерий 2: легко ли найти нужное? Любая страница анкеты.",
+                items: [
+                    "Все блоки имеют понятные заголовки (не «Блок 1», а «Проверка связи», «Документы» и т.д.)",
+                    "Использованы блоки+ панели для визуального разделения, а не «голые» текстовые элементы",
+                    "Текст разбит на абзацы, а не идёт «сплошной простыней»",
+                    "Все речевые модули и инструкции оформлены как курсив/ выделение/ маркеры/ другим цветом, читается легко"
+                ],
+                question: "Сколько секунд вам потребовалось, чтобы найти поле для ввода имени клиента?"
+            },
+            {
+                title: "III. Критерий 3: нет ли лишнего? Любая страница анкеты.",
+                items: [
+                    "На форме нет элементов, которые не относятся к текущему шагу",
+                    "Нет дублирующих полей (например, два поля «ФИО»)",
+                    "Кнопки только те, которые нужны на этом этапе"
+                ],
+                question: "Что на этой форме можно убрать, не потеряв смысл?"
+            },
+            {
+                title: "IV. Критерий 4: Защищено ли от ошибок? Стартовая или любая страница, где есть поля для заполнения оператором.",
+                items: [
+                    "Обязательные поля помечены (звёздочка * или надпись «обязательно»)",
+                    "Есть подсказки, как правильно заполнить (например, «Введите 11 цифр»), если это необходимо",
+                    "Есть подтверждение перед завершением"
+                ],
+                question: "Что может пойти не так, если оператор будет заполнять эту форму в спешке?"
+            },
+            {
+                title: "V. Критерий 5: Логичен ли переход к следующему шагу? Стартовая или любая страница, где есть поля для заполнения оператором.",
+                items: [
+                    "После заполнения формы понятно, куда идти дальше",
+                    "Кнопка «Далее» ведёт на логически следующую страницу",
+                    "Есть возможность вернуться назад, если нужно исправить"
+                ],
+                question: "Если оператор ошибся, сможет ли он легко вернуться и исправить?"
+            }
+        ];
+
+        const container = document.getElementById('checklist-container');
+        const progressText = document.getElementById('progress-text');
+        const STORAGE_KEY = 'trainer_1_1_progress';
+
+        // Генерация интерфейса
+        function renderTrainer() {
+            let html = '';
+            trainerData.forEach((section, sIndex) => {
+                html += `<section class="criteria-section">`;
+                html += `<h2 class="protected-text" contenteditable="false">🔹 ${section.title}</h2>`;
+                html += `<table><thead><tr>
+                    <th>№</th>
+                    <th>Пункт проверки</th>
+                    <th>Выполнено Анкета №1</th>
+                    <th>Выполнено Анкета №2</th>
+                </tr></thead><tbody>`;
+                
+                section.items.forEach((item, iIndex) => {
+                    html += `<tr>
+                        <td>${iIndex + 1}</td>
+                        <td class="protected-text" contenteditable="false">${item}</td>
+                        <td class="checkbox-cell">
+                            <div class="custom-checkbox" data-id="${sIndex}-${iIndex}-1" onclick="toggleCheckbox(this)"></div>
+                        </td>
+                        <td class="checkbox-cell">
+                            <div class="custom-checkbox" data-id="${sIndex}-${iIndex}-2" onclick="toggleCheckbox(this)"></div>
+                        </td>
+                    </tr>`;
+                });
+                html += `</tbody></table>`;
+                html += `<div class="reflection protected-text" contenteditable="false"><strong>Вопрос для размышления:</strong> «${section.question}»</div>`;
+                html += `</section>`;
+            });
+            container.innerHTML = html;
+            updateProgress();
+        }
+
+        // Переключение галочки
+        function toggleCheckbox(el) {
+            const id = el.dataset.id;
+            const isActive = el.classList.toggle('active');
+            saveProgress(id, isActive);
+            updateProgress();
+        }
+
+        // Сохранение состояния
+        function saveProgress(id, state) {
+            let progress = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
+            progress[id] = state;
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(progress));
+        }
+
+        // Восстановление состояния
+        function loadProgress() {
+            const progress = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
+            document.querySelectorAll('.custom-checkbox').forEach(el => {
+                if (progress[el.dataset.id]) {
+                    el.classList.add('active');
+                }
+            });
+        }
+
+        // Обновление счётчика
+        function updateProgress() {
+            const total = document.querySelectorAll('.custom-checkbox').length;
+            const checked = document.querySelectorAll('.custom-checkbox.active').length;
+            progressText.textContent = `Заполнено: ${checked} / ${total} пунктов`;
+        }
+
+        // Сброс
+        function resetProgress() {
+            if(confirm('Вы уверены, что хотите очистить все отметки?')) {
+                localStorage.removeItem(STORAGE_KEY);
+                document.querySelectorAll('.custom-checkbox').forEach(el => el.classList.remove('active'));
+                updateProgress();
+            }
+        }
+
+        // Инициализация
+        document.addEventListener('DOMContentLoaded', () => {
+            renderTrainer();
+            loadProgress();
+        });
+
+        // Блокировка контекстного меню и drag-and-drop для дополнительной защиты текста
+        document.addEventListener('contextmenu', e => {
+            if (e.target.classList.contains('protected-text')) e.preventDefault();
+        });
+        document.addEventListener('dragstart', e => e.preventDefault());
+    </script>
+</body>
+</html>
